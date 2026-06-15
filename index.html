@@ -1,0 +1,1434 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Internship Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23e8590c' rx='20'/%3E%3Ctext x='50' y='72' font-size='60' text-anchor='middle' fill='white' font-family='Arial'%3E📅%3C/text%3E%3C/svg%3E">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        display: ['Space Grotesk', 'sans-serif'],
+                        body: ['DM Sans', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --bg: #f4f5f9;
+            --card: #ffffff;
+            --card-alt: #f9fafb;
+            --border: #e2e5ed;
+            --border-light: #cdd2de;
+            --accent: #e8590c;
+            --accent-dim: rgba(232, 89, 12, 0.08);
+            --accent-light: rgba(232, 89, 12, 0.15);
+            --success: #16a34a;
+            --danger: #dc2626;
+            --text: #1e2432;
+            --muted: #6b7394;
+            --shadow: 0 1px 3px rgba(30, 36, 50, 0.06), 0 1px 2px rgba(30, 36, 50, 0.04);
+            --shadow-md: 0 4px 12px rgba(30, 36, 50, 0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            background: radial-gradient(ellipse 600px 400px at 10% 0%, rgba(232, 89, 12, 0.04), transparent),
+                radial-gradient(ellipse 500px 500px at 90% 100%, rgba(22, 163, 74, 0.03), transparent);
+        }
+
+        .font-display {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        .cal-cell {
+            position: relative;
+            min-height: 92px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 4px 6px 16px 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        .cal-cell:hover {
+            border-color: var(--accent);
+            box-shadow: var(--shadow-md), 0 0 0 1px var(--accent-light);
+            transform: translateY(-1px);
+        }
+
+        .cal-cell.other-month {
+            opacity: 0.35;
+            pointer-events: none;
+            box-shadow: none;
+        }
+
+        .cal-cell .event-chip {
+            display: block;
+            font-size: 10px;
+            line-height: 1.3;
+            padding: 1px 5px;
+            border-radius: 4px;
+            margin-top: 2px;
+            white-space: normal;
+            word-break: break-word;
+            cursor: pointer;
+        }
+
+        .cal-cell .cell-footer {
+            position: absolute;
+            bottom: 1px;
+            left: 5px;
+            right: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .cal-cell .completed-badge {
+            font-size: 7px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #fff;
+            background: var(--success);
+            padding: 1px 4px;
+            border-radius: 3px;
+            letter-spacing: 0.5px;
+        }
+
+        .cal-cell.tint-company {
+            background: rgba(59, 130, 246, 0.4);
+        }
+
+        .cal-cell.tint-holiday {
+            background: rgba(239, 68, 68, 0.4);
+        }
+
+        .cal-cell.tint-sick {
+            background: rgba(168, 85, 247, 0.4);
+        }
+
+        .cal-cell.tint-school {
+            background: rgba(245, 158, 11, 0.4);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            background: rgba(30, 36, 50, 0.4);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-box {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 28px;
+            width: 90%;
+            max-width: 520px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 24px 80px rgba(30, 36, 50, 0.2);
+            animation: modalIn 0.25s ease;
+        }
+
+        @keyframes modalIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95) translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .toast {
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 8px 32px rgba(30, 36, 50, 0.15);
+            animation: toastIn 0.3s ease, toastOut 0.3s ease 2.7s forwards;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toast.success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .toast.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .toast.info {
+            background: #e0e7ff;
+            color: #3730a3;
+        }
+
+        @keyframes toastIn {
+            from {
+                opacity: 0;
+                transform: translateX(40px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes toastOut {
+            to {
+                opacity: 0;
+                transform: translateX(40px);
+            }
+        }
+
+        .field-input {
+            width: 100%;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: var(--text);
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            font-family: 'DM Sans', sans-serif;
+        }
+
+        .field-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-light);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'DM Sans', sans-serif;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: #cf4f0a;
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-ghost {
+            background: var(--card);
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+
+        .btn-ghost:hover {
+            border-color: var(--border-light);
+            background: var(--bg);
+        }
+
+        .btn-danger {
+            background: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
+        .btn-danger:hover {
+            background: #fecaca;
+        }
+
+        .btn-success {
+            background: #dcfce7;
+            color: #16a34a;
+            border: 1px solid #bbf7d0;
+        }
+
+        .btn-success:hover {
+            background: #bbf7d0;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .progress-track {
+            height: 12px;
+            background: var(--bg);
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 6px;
+            transition: width 0.6s ease, background 0.3s;
+            position: relative;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+            animation: shimmer 2.5s infinite;
+        }
+
+        @keyframes shimmer {
+            0% {
+                transform: translateX(-100%);
+            }
+
+            100% {
+                transform: translateX(100%);
+            }
+        }
+
+        .cat-company {
+            background: #dbeafe;
+            color: #1e40af;
+            border-left: 3px solid #3b82f6;
+        }
+
+        .cat-holiday {
+            background: #fee2e2;
+            color: #991b1b;
+            border-left: 3px solid #ef4444;
+        }
+
+        .cat-sick {
+            background: #f3e8ff;
+            color: #6b21a8;
+            border-left: 3px solid #a855f7;
+        }
+
+        .cat-school {
+            background: #fef3c7;
+            color: #92400e;
+            border-left: 3px solid #f59e0b;
+        }
+
+        .event-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            margin-bottom: 8px;
+            transition: all 0.2s;
+        }
+
+        .stat-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 18px;
+            transition: all 0.2s;
+            box-shadow: var(--shadow);
+        }
+
+        .stat-card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        /* Month picker custom styles */
+        .month-picker-group {
+            background: var(--bg);
+            border-radius: 12px;
+            padding: 4px;
+            border: 1px solid var(--border-light);
+        }
+
+        .month-nav-btn {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 12px;
+            transition: all 0.2s;
+            cursor: pointer;
+            color: var(--text);
+        }
+
+        .month-nav-btn:hover {
+            background: var(--accent-dim);
+            border-color: var(--accent);
+        }
+
+        .month-display {
+            font-weight: 600;
+            background: var(--card);
+            border-radius: 8px;
+            padding: 6px 12px;
+            text-align: center;
+            font-size: 0.9rem;
+            font-family: 'Space Grotesk', monospace;
+            color: var(--accent);
+        }
+
+        .picker-label {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
+
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 10mm 8mm;
+            }
+
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            body {
+                background: #fff !important;
+                color: #1a1a1a !important;
+                font-size: 10px !important;
+            }
+
+            body::before {
+                display: none !important;
+            }
+
+            #main-app,
+            .no-print,
+            .modal-overlay,
+            .toast-container {
+                display: none !important;
+            }
+
+            #print-area {
+                display: block !important;
+            }
+
+            .print-month-title {
+                font-family: 'Space Grotesk', sans-serif;
+                font-size: 16px;
+                font-weight: 700;
+                margin: 12px 0 6px;
+                color: #1a1a1a;
+                page-break-after: avoid;
+            }
+
+            .print-cal-grid {
+                display: grid;
+                grid-template-columns: repeat(7, 1fr);
+                gap: 2px;
+                margin-bottom: 16px;
+                page-break-inside: avoid;
+            }
+
+            .print-day-header {
+                text-align: center;
+                font-size: 9px;
+                font-weight: 600;
+                padding: 3px 0;
+                color: #555;
+                text-transform: uppercase;
+            }
+
+            .print-cell {
+                min-height: 68px;
+                border: 1px solid #ccc;
+                border-radius: 2px;
+                padding: 2px 3px 14px 3px;
+                page-break-inside: avoid;
+                display: flex;
+                flex-direction: column;
+                position: relative;
+            }
+
+            .print-cell.p-other-month {
+                background: #f5f5f5 !important;
+                opacity: 0.4;
+            }
+
+            .print-cell.pt-company:not(.p-other-month) {
+                background: rgba(59, 130, 246, 0.4) !important;
+            }
+
+            .print-cell.pt-holiday:not(.p-other-month) {
+                background: rgba(239, 68, 68, 0.4) !important;
+            }
+
+            .print-cell.pt-sick:not(.p-other-month) {
+                background: rgba(168, 85, 247, 0.4) !important;
+            }
+
+            .print-cell.pt-school:not(.p-other-month) {
+                background: rgba(245, 158, 11, 0.4) !important;
+            }
+
+            .print-cell .p-day {
+                font-weight: 600;
+                font-size: 10px;
+            }
+
+            .print-cell .p-events {
+                flex: 1;
+            }
+
+            .print-cell .p-event {
+                font-size: 7px;
+                padding: 0 3px;
+                border-radius: 2px;
+                line-height: 1.4;
+                margin-top: 1px;
+                white-space: normal;
+                word-break: break-word;
+            }
+
+            .print-cell .p-footer {
+                position: absolute;
+                bottom: 1px;
+                left: 3px;
+                right: 3px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+
+            .print-cell .p-cum {
+                font-size: 7px;
+                color: #555;
+            }
+
+            .print-cell .p-completed {
+                font-size: 6px;
+                font-weight: 700;
+                text-transform: uppercase;
+                color: #fff;
+                background: #16a34a;
+                padding: 1px 3px;
+                border-radius: 2px;
+                letter-spacing: 0.3px;
+            }
+
+            .p-cat-company {
+                background: #dbeafe !important;
+                color: #1e40af !important;
+            }
+
+            .p-cat-holiday {
+                background: #fee2e2 !important;
+                color: #991b1b !important;
+            }
+
+            .p-cat-sick {
+                background: #f3e8ff !important;
+                color: #6b21a8 !important;
+            }
+
+            .p-cat-school {
+                background: #fef3c7 !important;
+                color: #92400e !important;
+            }
+        }
+
+        #print-area {
+            display: none;
+        }
+    </style>
+</head>
+
+<body class="font-body">
+    <div class="toast-container" id="toasts"></div>
+    <input type="file" id="csvFileInput" accept=".csv" style="display:none">
+
+    <!-- Day Modal -->
+    <div class="modal-overlay" id="dayModal">
+        <div class="modal-box">
+            <div class="flex items-center justify-between mb-5">
+                <h3 class="font-display text-xl font-bold" id="modalDate"></h3>
+                <button onclick="closeDayModal()"
+                    class="text-[var(--muted)] hover:text-[var(--text)] transition text-xl leading-none">&times;</button>
+            </div>
+            <div class="mb-5 p-4 rounded-xl" style="background:var(--bg);border:1px solid var(--border)">
+                <h4 class="font-display font-semibold text-sm mb-3" style="color:var(--accent)"><i
+                        class="fas fa-plus-circle mr-1"></i> Add Entry</h4>
+                <div class="grid grid-cols-2 gap-3 mb-3">
+                    <div><label class="block text-xs text-[var(--muted)] mb-1">Hours</label><input type="number"
+                            id="eventHours" class="field-input" value="8" min="0" max="24" step="0.01"></div>
+                    <div><label class="block text-xs text-[var(--muted)] mb-1">Category</label><select
+                            id="eventCategory" class="field-input" onchange="handleCategoryChange()">
+                            <option value="company">Company</option>
+                            <option value="holiday">Holiday</option>
+                            <option value="sick">Sick Leave</option>
+                            <option value="school">School</option>
+                        </select></div>
+                </div>
+                <div class="mb-3"><label class="block text-xs text-[var(--muted)] mb-1">Description</label><input
+                        type="text" id="eventDescription" class="field-input" placeholder="What did you work on?"></div>
+                <button onclick="addEvent()" class="btn btn-primary w-full"><i class="fas fa-plus"></i> Add
+                    Entry</button>
+            </div>
+            <div id="eventList" class="mb-4"></div>
+            <div id="modalCumulative" class="text-xs text-[var(--muted)] text-center pt-3 border-t"
+                style="border-color:var(--border)"></div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal-box" style="max-width:420px">
+            <div class="flex items-center justify-between mb-5">
+                <h3 class="font-display text-xl font-bold">Settings</h3><button onclick="closeSettings()"
+                    class="text-[var(--muted)] hover:text-[var(--text)] transition text-xl leading-none">&times;</button>
+            </div>
+            <div class="mb-4"><label class="block text-sm text-[var(--muted)] mb-2">Required Hours for
+                    Completion</label><input type="number" id="settingsHours" class="field-input" min="1" max="9999"
+                    step="1"></div>
+            <div class="mb-5"><label class="block text-sm text-[var(--muted)] mb-2">Internship Start Date</label><input
+                    type="date" id="settingsStartDate" class="field-input"></div>
+            <button onclick="saveSettings()" class="btn btn-primary w-full"><i class="fas fa-check"></i> Save
+                Settings</button>
+        </div>
+    </div>
+
+    <!-- PRINT MODAL -->
+    <div class="modal-overlay" id="printModal">
+        <div class="modal-box" style="max-width: 500px;">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="font-display text-xl font-bold">📅 Print Calendar Range</h3>
+                <button onclick="closePrintModal()"
+                    class="text-[var(--muted)] hover:text-[var(--text)] transition text-xl leading-none">&times;</button>
+            </div>
+            <p class="text-sm text-[var(--muted)] mb-5">Select the month range for your A4 printout. Navigate easily
+                with arrow buttons.</p>
+
+            <!-- Start Month Picker -->
+            <div class="mb-6">
+                <div class="picker-label"><i class="far fa-calendar-alt mr-1"></i> Start Month</div>
+                <div class="month-picker-group flex items-center justify-between gap-2">
+                    <button type="button" id="startPrevBtn" class="month-nav-btn"><i
+                            class="fas fa-chevron-left"></i></button>
+                    <div id="startMonthDisplay" class="month-display flex-1 font-medium">March 2025</div>
+                    <button type="button" id="startNextBtn" class="month-nav-btn"><i
+                            class="fas fa-chevron-right"></i></button>
+                </div>
+            </div>
+
+            <!-- End Month Picker -->
+            <div class="mb-6">
+                <div class="picker-label"><i class="far fa-calendar-check mr-1"></i> End Month</div>
+                <div class="month-picker-group flex items-center justify-between gap-2">
+                    <button type="button" id="endPrevBtn" class="month-nav-btn"><i
+                            class="fas fa-chevron-left"></i></button>
+                    <div id="endMonthDisplay" class="month-display flex-1 font-medium">March 2025</div>
+                    <button type="button" id="endNextBtn" class="month-nav-btn"><i
+                            class="fas fa-chevron-right"></i></button>
+                </div>
+            </div>
+
+            <div class="text-xs text-center text-[var(--muted)] mb-4 bg-[var(--bg)] p-2 rounded-lg">
+                <i class="fas fa-info-circle"></i> The printed report includes internship hours, cumulative totals, and
+                completion badges.
+            </div>
+            <button onclick="executePrint()" class="btn btn-primary w-full py-3"><i class="fas fa-print mr-2"></i>
+                Generate & Print A4</button>
+        </div>
+    </div>
+
+    <div id="main-app" class="relative z-10 max-w-7xl mx-auto px-4 py-6">
+        <header class="flex flex-wrap items-center justify-between gap-4 mb-6">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg flex items-center justify-center"
+                    style="background:var(--accent-light)"><i class="fas fa-briefcase" style="color:var(--accent)"></i>
+                </div>
+                <div>
+                    <h1 class="font-display text-2xl font-bold leading-tight">Internship Tracker</h1>
+                    <p class="text-xs text-[var(--muted)]" id="headerSubtitle"></p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap"><button onclick="openSettings()"
+                    class="btn btn-ghost text-xs"><i class="fas fa-cog"></i> Settings</button><button
+                    onclick="importCSV()" class="btn btn-ghost text-xs"><i class="fas fa-file-import"></i>
+                    Import</button><button onclick="exportCSV()" class="btn btn-success text-xs"><i
+                        class="fas fa-file-export"></i> Export CSV</button><button onclick="openPrintModal()"
+                    class="btn btn-primary text-xs"><i class="fas fa-print"></i> Print A4</button></div>
+        </header>
+        <section class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            <div class="stat-card">
+                <div class="text-xs text-[var(--muted)] mb-1 uppercase tracking-wider">Completed</div>
+                <div class="font-display text-2xl font-bold" id="statCompleted">0</div>
+                <div class="text-xs text-[var(--muted)]">of <span id="statTarget">360</span> hrs</div>
+            </div>
+            <div class="stat-card">
+                <div class="text-xs text-[var(--muted)] mb-1 uppercase tracking-wider">Remaining</div>
+                <div class="font-display text-2xl font-bold" id="statRemaining">360</div>
+                <div class="text-xs text-[var(--muted)]">hours left</div>
+            </div>
+            <div class="stat-card">
+                <div class="text-xs text-[var(--muted)] mb-1 uppercase tracking-wider">Working Days</div>
+                <div class="font-display text-2xl font-bold" id="statDays">0</div>
+                <div class="text-xs text-[var(--muted)]" id="statAvgHrs">avg 0 hrs/day</div>
+            </div>
+            <div class="stat-card">
+                <div class="text-xs text-[var(--muted)] mb-1 uppercase tracking-wider">Completion</div>
+                <div class="font-display text-2xl font-bold" id="statPercent">0%</div>
+                <div class="progress-track mt-2">
+                    <div class="progress-fill" id="progressFill" style="width:0%;background:var(--accent)"></div>
+                </div>
+            </div>
+        </section>
+        <nav class="flex items-center justify-between mb-4"><button onclick="prevMonth()" class="btn btn-ghost"><i
+                    class="fas fa-chevron-left"></i></button>
+            <h2 class="font-display text-xl font-bold" id="calMonthTitle"></h2>
+            <div class="flex gap-2"><button onclick="goToday()" class="btn btn-ghost text-xs">Today</button><button
+                    onclick="nextMonth()" class="btn btn-ghost"><i class="fas fa-chevron-right"></i></button></div>
+        </nav>
+        <section>
+            <div class="grid grid-cols-7 gap-1 mb-1">
+                <div class="text-center text-xs font-semibold text-[var(--muted)] py-2 uppercase tracking-wider">Sun
+                </div>
+                <div class="text-center text-xs font-semibold text-[var(--muted)] py-2 uppercase tracking-wider">Mon
+                </div>
+                <div class="text-center text-xs font-semibold text-[var(--muted)] py-2 uppercase tracking-wider">Tue
+                </div>
+                <div class="text-center text-xs font-semibold text-[var(--muted)] py-2 uppercase tracking-wider">Wed
+                </div>
+                <div class="text-center text-xs font-semibold text-[var(--muted)] py-2 uppercase tracking-wider">Thu
+                </div>
+                <div class="text-center text-xs font-semibold text-[var(--muted)] py-2 uppercase tracking-wider">Fri
+                </div>
+                <div class="text-center text-xs font-semibold text-[var(--muted)] py-2 uppercase tracking-wider">Sat
+                </div>
+            </div>
+            <div id="calendar-grid" class="grid grid-cols-7 gap-1"></div>
+        </section>
+        <div class="flex flex-wrap gap-4 mt-4 text-xs"><span class="flex items-center gap-1.5"><span
+                    class="w-3 h-3 rounded-sm inline-block" style="background:#3b82f6"></span> Company</span><span
+                class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm inline-block"
+                    style="background:#ef4444"></span> Holiday</span><span class="flex items-center gap-1.5"><span
+                    class="w-3 h-3 rounded-sm inline-block" style="background:#a855f7"></span> Sick Leave</span><span
+                class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm inline-block"
+                    style="background:#f59e0b"></span> School</span><span class="flex items-center gap-1.5"><span
+                    class="w-3 h-3 rounded-sm inline-block" style="background:#16a34a"></span> Completed</span></div>
+    </div>
+    <div id="print-area"></div>
+
+<script>
+    // CONSTANTS
+    const STORAGE_KEY = 'internshipTracker';
+    const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const CATEGORIES = ['company', 'holiday', 'sick', 'school'];
+    const CATEGORY_LABELS = { company: 'Company', holiday: 'Holiday', sick: 'Sick Leave', school: 'School' };
+    const CATEGORY_PLACEHOLDERS = {
+        company: 'What did you work on?',
+        holiday: 'e.g. Christmas Day, Independence Day',
+        sick: 'Reason for sick leave',
+        school: 'e.g. Thesis defense, Seminar'
+    };
+
+    // STATE
+    let state = {
+        events: [],
+        requiredHours: 360,
+        startDate: '',
+        currentMonth: new Date().getMonth(),
+        currentYear: new Date().getFullYear()
+    };
+    let selectedDate = '';
+
+    // UTILITIES
+    function fmtHours(n) { return parseFloat(n.toFixed(2)).toString(); }
+    function generateId() { return 'evt_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9); }
+    function dateKey(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+    function parseKey(key) { const [y, m, d] = key.split('-').map(Number); return new Date(y, m - 1, d); }
+    function formatDateNice(key) { const d = parseKey(key); return `${DAYS_SHORT[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`; }
+    function getCatClass(cat) { return CATEGORIES.includes(cat) ? cat : 'default'; }
+    function getCatLabel(cat) { return CATEGORY_LABELS[cat] || 'General'; }
+
+    // LOCAL STORAGE
+    function saveState() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+            events: state.events,
+            requiredHours: state.requiredHours,
+            startDate: state.startDate
+        }));
+    }
+
+    function loadState() {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+            try {
+                const data = JSON.parse(saved);
+                state.events = data.events || [];
+                state.requiredHours = data.requiredHours || 360;
+                state.startDate = data.startDate || '';
+                // Fix legacy category name
+                state.events.forEach(e => { if (e.category === 'office') e.category = 'company'; });
+            } catch (e) { }
+        }
+    }
+
+    // HOURS CALCULATION
+    function getCumulativeHours(upToDate) {
+        return state.events.filter(e => e.date <= upToDate).reduce((s, e) => s + (e.hours || 0), 0);
+    }
+    function getDayTotalHours(dateStr) {
+        return state.events.filter(e => e.date === dateStr).reduce((s, e) => s + (e.hours || 0), 0);
+    }
+    function getTotalCompleted() {
+        return state.events.reduce((s, e) => s + (e.hours || 0), 0);
+    }
+
+    // TOAST NOTIFICATIONS
+    function showToast(msg, type = 'info') {
+        const c = document.getElementById('toasts');
+        const t = document.createElement('div');
+        t.className = `toast ${type}`;
+        const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', info: 'fa-info-circle' };
+        t.innerHTML = `<i class="fas ${icons[type] || icons.info}"></i> ${msg}`;
+        c.appendChild(t);
+        setTimeout(() => t.remove(), 3000);
+    }
+
+    // DASHBOARD STATS
+    function renderStats() {
+        const completed = getTotalCompleted();
+        const remaining = Math.max(0, state.requiredHours - completed);
+        const workingDays = new Set(state.events.filter(e => e.hours > 0).map(e => e.date)).size;
+        const avg = workingDays > 0 ? (completed / workingDays) : 0;
+        const pct = state.requiredHours > 0 ? Math.min(100, (completed / state.requiredHours) * 100) : 0;
+
+        document.getElementById('statCompleted').textContent = fmtHours(completed);
+        document.getElementById('statTarget').textContent = state.requiredHours;
+        document.getElementById('statRemaining').textContent = fmtHours(remaining);
+        document.getElementById('statDays').textContent = workingDays;
+        document.getElementById('statAvgHrs').textContent = `avg ${fmtHours(avg)} hrs/day`;
+        document.getElementById('statPercent').textContent = pct.toFixed(1) + '%';
+
+        const fill = document.getElementById('progressFill');
+        fill.style.width = pct + '%';
+        fill.style.background = pct >= 100 ? 'var(--success)' : pct >= 75 ? '#eab308' : 'var(--accent)';
+
+        const sub = document.getElementById('headerSubtitle');
+        if (state.startDate) {
+            const sd = parseKey(state.startDate);
+            sub.textContent = `Started ${MONTHS[sd.getMonth()]} ${sd.getDate()}, ${sd.getFullYear()} · ${fmtHours(remaining)} hours remaining`;
+        } else {
+            sub.textContent = `${fmtHours(remaining)} hours remaining to complete`;
+        }
+    }
+
+    // EVENT CHIP TEXT
+    function buildChipText(ev) {
+        if (ev.category === 'company') return ev.description ? ev.description.substring(0, 40) : '';
+        const label = ev.hours > 0 ? `${fmtHours(ev.hours)}h` : '';
+        const desc = ev.description ? ev.description.substring(0, 30) : '';
+        return [label, desc].filter(Boolean).join(' · ');
+    }
+
+    // CALENDAR RENDERING
+    function renderCalendar() {
+        const grid = document.getElementById('calendar-grid');
+        const year = state.currentYear;
+        const month = state.currentMonth;
+
+        document.getElementById('calMonthTitle').textContent = `${MONTHS[month]} ${year}`;
+
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const daysInPrevMonth = new Date(year, month, 0).getDate();
+
+        let cells = [];
+
+        // Previous month padding
+        for (let i = firstDay - 1; i >= 0; i--) {
+            const day = daysInPrevMonth - i;
+            const m = month === 0 ? 11 : month - 1;
+            const y = month === 0 ? year - 1 : year;
+            cells.push({ day, key: dateKey(new Date(y, m, day)), otherMonth: true });
+        }
+
+        // Current month days
+        for (let d = 1; d <= daysInMonth; d++) {
+            cells.push({ day: d, key: dateKey(new Date(year, month, d)), otherMonth: false });
+        }
+
+        // Next month padding
+        const rem = cells.length % 7;
+        if (rem > 0) {
+            for (let d = 1; d <= 7 - rem; d++) {
+                const m = month === 11 ? 0 : month + 1;
+                const y = month === 11 ? year + 1 : year;
+                cells.push({ day: d, key: dateKey(new Date(y, m, d)), otherMonth: true });
+            }
+        }
+
+        // Build grid HTML
+        let html = '';
+        for (const cell of cells) {
+            const dayEvents = state.events.filter(e => e.date === cell.key);
+            const dayHours = dayEvents.reduce((s, e) => s + (e.hours || 0), 0);
+            const cumHours = getCumulativeHours(cell.key);
+            const isCompleted = !cell.otherMonth && cumHours >= state.requiredHours;
+            const otherCls = cell.otherMonth ? ' other-month' : '';
+
+            let tintCls = '';
+            if (dayEvents.length > 0 && CATEGORIES.includes(dayEvents[0].category)) {
+                tintCls = ' tint-' + dayEvents[0].category;
+            }
+
+            html += `<div class="cal-cell${tintCls}${otherCls}" onclick="openDayModal('${cell.key}')">`;
+            html += `<div class="text-xs font-semibold">${cell.day}</div>`;
+
+            // Event chips
+            for (const ev of dayEvents) {
+                const chipText = buildChipText(ev);
+                if (ev.category === 'company' && !chipText) continue;
+                const catClass = `cat-${getCatClass(ev.category)}`;
+                html += `<div class="event-chip ${catClass}" title="${ev.description || ''} (${getCatLabel(ev.category)})">${chipText}</div>`;
+            }
+
+            // Footer with hours and completion badge
+            if (!cell.otherMonth && (dayHours > 0 || cumHours > 0 || isCompleted)) {
+                html += `<div class="cell-footer">`;
+                html += isCompleted ? '<span class="completed-badge">Done</span>' : '<span></span>';
+                const dayStr = dayHours > 0 ? `+${fmtHours(dayHours)}` : '';
+                const cumStr = cumHours > 0 ? `${fmtHours(cumHours)}h` : '';
+                const sep = dayStr && cumStr ? ' | ' : '';
+                html += `<span class="text-[8px] text-[var(--muted)] font-mono">${dayStr}${sep}${cumStr}</span>`;
+                html += `</div>`;
+            }
+
+            html += '</div>';
+        }
+        grid.innerHTML = html;
+        renderStats();
+    }
+
+    // CALENDAR NAVIGATION
+    function prevMonth() {
+        state.currentMonth--;
+        if (state.currentMonth < 0) {
+            state.currentMonth = 11;
+            state.currentYear--;
+        }
+        renderCalendar();
+    }
+
+    function nextMonth() {
+        state.currentMonth++;
+        if (state.currentMonth > 11) {
+            state.currentMonth = 0;
+            state.currentYear++;
+        }
+        renderCalendar();
+    }
+
+    function goToday() {
+        const n = new Date();
+        state.currentMonth = n.getMonth();
+        state.currentYear = n.getFullYear();
+        renderCalendar();
+    }
+
+    // DAY MODAL - CRUD OPERATIONS
+    function openDayModal(dateStr) {
+        selectedDate = dateStr;
+        document.getElementById('modalDate').textContent = formatDateNice(dateStr);
+        document.getElementById('eventCategory').value = 'company';
+        document.getElementById('eventHours').value = 8;
+        document.getElementById('eventDescription').value = '';
+        document.getElementById('eventDescription').placeholder = CATEGORY_PLACEHOLDERS.company;
+        renderDayEvents();
+        renderModalCumulative();
+        document.getElementById('dayModal').classList.add('active');
+    }
+
+    function closeDayModal() {
+        document.getElementById('dayModal').classList.remove('active');
+        selectedDate = '';
+    }
+
+    function renderDayEvents() {
+        const list = document.getElementById('eventList');
+        const dayEvents = state.events.filter(e => e.date === selectedDate);
+        if (!dayEvents.length) {
+            list.innerHTML = '<p class="text-center text-sm text-[var(--muted)] py-4">No entries for this day</p>';
+            return;
+        }
+
+        let html = '<h4 class="font-display font-semibold text-sm mb-2 text-[var(--muted)]">Entries</h4>';
+        for (const ev of dayEvents) {
+            const catClass = `cat-${getCatClass(ev.category)}`;
+            const catLabel = getCatLabel(ev.category);
+            html += `
+                <div class="event-item">
+                    <div class="event-chip ${catClass}" style="margin:0;white-space:normal;border-left-width:4px;padding:4px 8px;font-size:11px;min-width:80px;text-align:center">
+                        ${catLabel}<br>${ev.hours > 0 ? fmtHours(ev.hours) + 'h' : '0h'}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-sm font-medium truncate">${ev.description || '<span class="text-[var(--muted)] italic">No description</span>'}</div>
+                    </div>
+                    <div class="flex gap-1 shrink-0">
+                        <button onclick="editEvent('${ev.id}')" class="btn btn-ghost btn-sm px-2 py-1" title="Edit"><i class="fas fa-pen text-[10px]"></i></button>
+                        <button onclick="deleteEvent('${ev.id}')" class="btn btn-danger btn-sm px-2 py-1" title="Delete"><i class="fas fa-trash text-[10px]"></i></button>
+                    </div>
+                </div>
+            `;
+        }
+        list.innerHTML = html;
+    }
+
+    function renderModalCumulative() {
+        const cum = getCumulativeHours(selectedDate);
+        const dayT = getDayTotalHours(selectedDate);
+        const rem = Math.max(0, state.requiredHours - cum);
+        const isDone = cum >= state.requiredHours;
+        document.getElementById('modalCumulative').innerHTML = `
+            Day total: <strong>${fmtHours(dayT)}h</strong> &nbsp;·&nbsp;
+            Cumulative: <strong>${fmtHours(cum)}h</strong> &nbsp;·&nbsp;
+            ${isDone ? '<strong style="color:var(--success)">Completed</strong>' : `Remaining: <strong>${fmtHours(rem)}h</strong>`}
+        `;
+    }
+
+    function handleCategoryChange() {
+        const cat = document.getElementById('eventCategory').value;
+        const hoursInput = document.getElementById('eventHours');
+        const descInput = document.getElementById('eventDescription');
+
+        descInput.placeholder = CATEGORY_PLACEHOLDERS[cat] || 'Enter description';
+
+        if (cat === 'company') {
+            hoursInput.value = 8;
+            if (descInput.value === 'Sick Leave' || descInput.value === 'Holiday') descInput.value = '';
+        } else if (cat === 'sick') {
+            hoursInput.value = 0;
+            descInput.value = 'Sick Leave';
+        } else if (cat === 'holiday') {
+            hoursInput.value = 0;
+            if (descInput.value === 'Sick Leave') descInput.value = '';
+        } else {
+            if (hoursInput.value === '8' || hoursInput.value === '') hoursInput.value = 0;
+            if (descInput.value === 'Sick Leave' || descInput.value === 'Holiday') descInput.value = '';
+        }
+    }
+
+    function addEvent() {
+        const hours = parseFloat(document.getElementById('eventHours').value) || 0;
+        const category = document.getElementById('eventCategory').value;
+        const description = document.getElementById('eventDescription').value.trim();
+        if (hours === 0 && !description) {
+            showToast('Please enter hours or a description', 'error');
+            return;
+        }
+
+        state.events.push({ id: generateId(), date: selectedDate, hours, description, category });
+        saveState();
+        renderCalendar();
+        closeDayModal();
+        showToast('Entry added successfully', 'success');
+    }
+
+    function deleteEvent(id) {
+        state.events = state.events.filter(e => e.id !== id);
+        saveState();
+        renderCalendar();
+        renderDayEvents();
+        renderModalCumulative();
+        showToast('Entry deleted', 'info');
+    }
+
+    function editEvent(id) {
+        const ev = state.events.find(e => e.id === id);
+        if (!ev) return;
+        document.getElementById('eventHours').value = ev.hours || 0;
+        document.getElementById('eventDescription').value = ev.description || '';
+        document.getElementById('eventCategory').value = CATEGORIES.includes(ev.category) ? ev.category : 'company';
+        document.getElementById('eventDescription').placeholder = CATEGORY_PLACEHOLDERS[ev.category] || 'Enter description';
+        state.events = state.events.filter(e => e.id !== id);
+        saveState();
+        renderDayEvents();
+        showToast('Editing entry — modify and add', 'info');
+    }
+
+    // SETTINGS MODAL
+    function openSettings() {
+        document.getElementById('settingsHours').value = state.requiredHours;
+        document.getElementById('settingsStartDate').value = state.startDate;
+        document.getElementById('settingsModal').classList.add('active');
+    }
+
+    function closeSettings() {
+        document.getElementById('settingsModal').classList.remove('active');
+    }
+
+    function saveSettings() {
+        const h = parseInt(document.getElementById('settingsHours').value);
+        const sd = document.getElementById('settingsStartDate').value;
+        if (h && h > 0) state.requiredHours = h;
+        state.startDate = sd || '';
+        saveState();
+        renderCalendar();
+        closeSettings();
+        showToast('Settings saved', 'success');
+    }
+
+    // CSV IMPORT / EXPORT
+    function exportCSV() {
+        if (!state.events.length) {
+            showToast('No entries to export', 'error');
+            return;
+        }
+        let csv = `Date,Category,Hours,Description\n`;
+        const sorted = [...state.events].sort((a, b) => a.date.localeCompare(b.date));
+        for (const ev of sorted) {
+            const desc = ev.description ? `"${ev.description.replace(/"/g, '""')}"` : '';
+            csv += `${ev.date},${ev.category || ''},${ev.hours || 0},${desc}\n`;
+        }
+        csv = `# RequiredHours:${state.requiredHours}\n# StartDate:${state.startDate}\n` + csv;
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `internship_tracker_${dateKey(new Date())}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast(`Exported ${state.events.length} entries`, 'success');
+    }
+
+    function importCSV() {
+        document.getElementById('csvFileInput').click();
+    }
+
+    function parseCSVLine(line) {
+        const result = [];
+        let current = '', inQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+            const c = line[i];
+            if (c === '"') {
+                if (inQuotes && i + 1 < line.length && line[i + 1] === '"') {
+                    current += '"';
+                    i++;
+                } else {
+                    inQuotes = !inQuotes;
+                }
+            } else if (c === ',' && !inQuotes) {
+                result.push(current);
+                current = '';
+            } else {
+                current += c;
+            }
+        }
+        result.push(current);
+        return result;
+    }
+
+    // CSV file handler
+    document.getElementById('csvFileInput').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            try {
+                const lines = evt.target.result.split(/\r?\n/).filter(l => l.trim());
+                let imported = 0, newEvents = [];
+                for (const line of lines) {
+                    if (line.startsWith('# RequiredHours:')) {
+                        const v = parseInt(line.split(':')[1]);
+                        if (v > 0) state.requiredHours = v;
+                        continue;
+                    }
+                    if (line.startsWith('# StartDate:')) {
+                        state.startDate = line.split(':').slice(1).join(':').trim();
+                        continue;
+                    }
+                    if (line.startsWith('Date,')) continue;
+
+                    const parts = parseCSVLine(line);
+                    if (parts.length >= 2) {
+                        const ds = parts[0].trim();
+                        let cat = parts[1] ? parts[1].trim().toLowerCase() : 'company';
+                        if (cat === 'office') cat = 'company';
+                        const hrs = parseFloat(parts[2]) || 0;
+                        const desc = parts[3] ? parts[3].trim() : '';
+                        if (/^\d{4}-\d{2}-\d{2}$/.test(ds)) {
+                            newEvents.push({ id: generateId(), date: ds, category: CATEGORIES.includes(cat) ? cat : 'company', hours: hrs, description: desc });
+                            imported++;
+                        }
+                    }
+                }
+                state.events = newEvents;
+                saveState();
+                renderCalendar();
+                showToast(`Imported ${imported} entries`, 'success');
+            } catch (err) {
+                showToast('Failed to parse CSV', 'error');
+            }
+        };
+        reader.readAsText(file);
+        e.target.value = '';
+    });
+
+    // PRINT MODAL - USER FRIENDLY MONTH PICKERS
+    let printStartDate = new Date();
+    let printEndDate = new Date();
+
+    function updateStartDisplay() {
+        const y = printStartDate.getFullYear();
+        const m = printStartDate.getMonth();
+        document.getElementById('startMonthDisplay').innerHTML = `${MONTHS[m]} ${y}`;
+    }
+
+    function updateEndDisplay() {
+        const y = printEndDate.getFullYear();
+        const m = printEndDate.getMonth();
+        document.getElementById('endMonthDisplay').innerHTML = `${MONTHS[m]} ${y}`;
+    }
+
+    function openPrintModal() {
+        printStartDate = new Date(state.currentYear, state.currentMonth, 1);
+        printEndDate = new Date(state.currentYear, state.currentMonth, 1);
+        updateStartDisplay();
+        updateEndDisplay();
+        document.getElementById('printModal').classList.add('active');
+    }
+
+    function closePrintModal() {
+        document.getElementById('printModal').classList.remove('active');
+    }
+
+    // Month picker navigation
+    document.getElementById('startPrevBtn').addEventListener('click', () => {
+        printStartDate.setMonth(printStartDate.getMonth() - 1);
+        updateStartDisplay();
+    });
+    document.getElementById('startNextBtn').addEventListener('click', () => {
+        printStartDate.setMonth(printStartDate.getMonth() + 1);
+        updateStartDisplay();
+    });
+    document.getElementById('endPrevBtn').addEventListener('click', () => {
+        printEndDate.setMonth(printEndDate.getMonth() - 1);
+        updateEndDisplay();
+    });
+    document.getElementById('endNextBtn').addEventListener('click', () => {
+        printEndDate.setMonth(printEndDate.getMonth() + 1);
+        updateEndDisplay();
+    });
+
+    // Build single month for print
+    function buildPrintMonth(year, month) {
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const daysInPrevMonth = new Date(year, month, 0).getDate();
+
+        let cells = [];
+
+        // Previous month padding
+        for (let i = firstDay - 1; i >= 0; i--) {
+            cells.push({ day: daysInPrevMonth - i, otherMonth: true, key: dateKey(new Date(year, month - 1, daysInPrevMonth - i)) });
+        }
+
+        // Current month days
+        for (let d = 1; d <= daysInMonth; d++) {
+            cells.push({ day: d, otherMonth: false, key: dateKey(new Date(year, month, d)) });
+        }
+
+        // Next month padding
+        const rem = cells.length % 7;
+        if (rem > 0) {
+            for (let d = 1; d <= 7 - rem; d++) {
+                cells.push({ day: d, otherMonth: true, key: dateKey(new Date(year, month + 1, d)) });
+            }
+        }
+
+        let html = `<div class="print-month-title">${MONTHS[month]} ${year}</div><div class="print-cal-grid">`;
+
+        // Day headers
+        for (const d of DAYS_SHORT) {
+            html += `<div class="print-day-header">${d}</div>`;
+        }
+
+        // Calendar cells
+        for (const cell of cells) {
+            const otherClass = cell.otherMonth ? ' p-other-month' : '';
+            const dayEvents = state.events.filter(e => e.date === cell.key);
+            const dayHours = dayEvents.reduce((s, e) => s + (e.hours || 0), 0);
+            const cumHours = getCumulativeHours(cell.key);
+            const isCompleted = !cell.otherMonth && cumHours >= state.requiredHours;
+
+            let ptClass = '';
+            if (!cell.otherMonth && dayEvents.length > 0 && CATEGORIES.includes(dayEvents[0].category)) {
+                ptClass = ' pt-' + dayEvents[0].category;
+            }
+
+            html += `<div class="print-cell${otherClass}${ptClass}">`;
+            html += `<div class="p-day">${cell.day}</div>`;
+            html += `<div class="p-events">`;
+
+            // Event chips
+            if (!cell.otherMonth) {
+                for (const ev of dayEvents) {
+                    const chipText = buildChipText(ev);
+                    if (ev.category === 'company' && !chipText) continue;
+                    const catClass = `p-cat-${getCatClass(ev.category)}`;
+                    html += `<div class="p-event ${catClass}">${chipText}</div>`;
+                }
+            }
+
+            html += `</div>`;
+
+            // Footer
+            if (!cell.otherMonth && (dayHours > 0 || cumHours > 0 || isCompleted)) {
+                html += `<div class="p-footer">`;
+                html += isCompleted ? '<span class="p-completed">Done</span>' : '<span></span>';
+                const dayStr = dayHours > 0 ? `+${fmtHours(dayHours)}` : '';
+                const cumStr = cumHours > 0 ? `${fmtHours(cumHours)}h` : '';
+                const sep = dayStr && cumStr ? ' | ' : '';
+                html += `<span class="p-cum">${dayStr}${sep}${cumStr}</span>`;
+                html += `</div>`;
+            }
+
+            html += '</div>';
+        }
+
+        html += '</div>';
+        return html;
+    }
+
+    // Generate and print selected range
+    function executePrint() {
+        const startMonth = printStartDate.getMonth(), startYear = printStartDate.getFullYear();
+        const endMonth = printEndDate.getMonth(), endYear = printEndDate.getFullYear();
+        const startNum = startYear * 12 + startMonth, endNum = endYear * 12 + endMonth;
+
+        if (startNum > endNum) {
+            showToast('End month must be after or equal to start month', 'error');
+            return;
+        }
+
+        const printArea = document.getElementById('print-area');
+        let html = '';
+        const completed = getTotalCompleted();
+        const pct = state.requiredHours > 0 ? ((completed / state.requiredHours) * 100).toFixed(1) : '0';
+        const rangeLabel = `${MONTHS[startMonth]} ${startYear} – ${MONTHS[endMonth]} ${endYear}`;
+
+        // Header
+        html += `<div style="text-align:center;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #1a1a1a">
+            <h1 style="font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;margin:0 0 4px">Internship Hours Tracker</h1>
+            <p style="font-size:11px;color:#333;margin:0 0 2px;font-weight:600">${rangeLabel}</p>
+            <p style="font-size:10px;color:#555;margin:0">Required: ${state.requiredHours} hrs · Completed: ${fmtHours(completed)} hrs · ${pct}% done${state.startDate ? ' · Started: ' + state.startDate : ''}</p>
+        </div>`;
+
+        // Generate each month in range
+        let curYear = startYear, curMonth = startMonth;
+        while (curYear < endYear || (curYear === endYear && curMonth <= endMonth)) {
+            html += buildPrintMonth(curYear, curMonth);
+            curMonth++;
+            if (curMonth > 11) {
+                curMonth = 0;
+                curYear++;
+            }
+        }
+
+        printArea.innerHTML = html;
+        closePrintModal();
+        setTimeout(() => window.print(), 200);
+    }
+
+
+    // MODAL CLOSE HANDLERS
+    document.getElementById('dayModal').addEventListener('click', function(e) {
+        if (e.target === this) closeDayModal();
+    });
+    document.getElementById('settingsModal').addEventListener('click', function(e) {
+        if (e.target === this) closeSettings();
+    });
+    document.getElementById('printModal').addEventListener('click', function(e) {
+        if (e.target === this) closePrintModal();
+    });
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeDayModal();
+            closeSettings();
+            closePrintModal();
+        }
+    });
+
+
+    // INITIALIZATION
+    loadState();
+    renderCalendar();
+
+</script>
+</body>
+
+</html>
