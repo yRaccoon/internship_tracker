@@ -1,6 +1,8 @@
 # Internship Tracker
 
 A simple, offline-first web app to log internship hours, visualize progress on a color-coded calendar, and print monthly reports.
+[![Live Demo](https://img.shields.io/badge/Live_Demo-View_Here-4ade80?style=for-the-badge&logo=github&logoColor=white)](https://yraccoon.github.io/internship_tracker/)
+[![GitHub Pages](https://img.shields.io/badge/Hosted_on-GitHub_Pages-black?style=for-the-badge&logo=github)](https://pages.github.com/)
 
 ## Features
 
